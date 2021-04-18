@@ -1,6 +1,7 @@
 const input = new THREE.Vector2(-1, -1);
 const vectorZero = new THREE.Vector3();
 const subdivisions = [1, 6, 8];
+const debug = false;
 let iteration = 0;
 
 function zoomCamera(camera, zoom) {
@@ -15,7 +16,7 @@ const renderer = new THREE.WebGLRenderer({
   antialias: true,
   powerPreference: "high-performance",
 });
-renderer.debug.checkShaderErrors = true;
+renderer.debug.checkShaderErrors = debug;
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setClearColor(0x000000);
@@ -23,7 +24,9 @@ document.body.appendChild(renderer.domElement);
 
 const scene = new THREE.Scene();
 scene.fog = new THREE.FogExp2(0x000000, 0.001);
-scene.add(new THREE.AxesHelper(), new THREE.GridHelper(10, 10));
+if (debug) {
+  scene.add(new THREE.AxesHelper(), new THREE.GridHelper(10, 10));
+}
 
 const preset = [
   { movementSpeed: 0.02 },
@@ -50,6 +53,7 @@ zoomCamera(cameras.dev, 10);
 zoomCamera(cameras.main, 50);
 
 const controls = new THREE.OrbitControls(cameras.dev, renderer.domElement);
+controls.enabled = debug;
 
 const ambientLight = new THREE.AmbientLight(0xb1b1b1);
 scene.add(ambientLight);
@@ -95,19 +99,22 @@ function generateMesh(value) {
   iteration = value;
   subdivision = subdivisions[iteration];
 
-  const noiseValues = [0.35, 0.3, 0.2];
+  const noiseValues = [0.35, 0.2, 0.1];
   let geometry = new THREE.IcosahedronGeometry(50, subdivision);
   geometry = THREE.BufferGeometryUtils.mergeVertices(geometry);
 
+  const total = value + 1;
   for (let i = 0; i < geometry.attributes.position.count; i++) {
-    const noise = noiseValues[Math.floor(Math.random() * noiseValues.length)];
-    const scalar = 1 + Math.random() * noise;
-    const x = geometry.attributes.position.getX(i) * scalar;
-    const y = geometry.attributes.position.getY(i) * scalar;
-    const z = geometry.attributes.position.getZ(i) * scalar;
-    geometry.attributes.position.setX(i, x);
-    geometry.attributes.position.setY(i, y);
-    geometry.attributes.position.setZ(i, z);
+    for (let j = 0; j < total; j++) {
+      const noise = noiseValues[j] / (j + 1);
+      const scalar = 1 + Math.random() * noise;
+      const x = geometry.attributes.position.getX(i) * scalar;
+      const y = geometry.attributes.position.getY(i) * scalar;
+      const z = geometry.attributes.position.getZ(i) * scalar;
+      geometry.attributes.position.setX(i, x);
+      geometry.attributes.position.setY(i, y);
+      geometry.attributes.position.setZ(i, z);
+    }
   }
   geometry = geometry.toNonIndexed();
   geometry.computeVertexNormals();
@@ -127,6 +134,36 @@ function resize() {
   renderer.setSize(width, height);
 }
 
+let count = iteration;
+
+function updateMesh() {
+  count++;
+  generateMesh(count % 3);
+  startTimer();
+}
+
+function onTimeout() {
+  updateMesh();
+}
+
+let timer;
+function startTimer() {
+  clearTimeout(timer);
+  timer = setTimeout(onTimeout, 60 * 1000);
+}
+
+function onMouseMove(event) {
+  input.x = (event.clientX / window.innerWidth) * 2 - 1;
+  input.y = (event.clientY / window.innerHeight) * 2 - 1;
+  startTimer();
+}
+
+function onTouchMove(event) {
+  input.x = (event.touches[0].pageX / window.innerWidth) * 2 - 1;
+  input.y = (event.touches[0].pageY / window.innerHeight) * 2 - 1;
+  startTimer();
+}
+
 function render() {
   requestAnimationFrame(render);
 
@@ -139,17 +176,10 @@ function render() {
   renderer.render(scene, cameras.main);
 }
 
-function onMouseMove(event) {
-  input.x = (event.clientX / window.innerWidth) * 2 - 1;
-  input.y = (event.clientY / window.innerHeight) * 2 - 1;
-}
-
-window.addEventListener("mousemove", onMouseMove);
-let count = iteration;
-window.addEventListener("click", function () {
-  count++;
-  generateMesh(count % 3);
-});
+renderer.domElement.addEventListener("mousemove", onMouseMove);
+renderer.domElement.addEventListener("touchmove", onTouchMove);
+renderer.domElement.addEventListener("click", updateMesh);
 window.addEventListener("resize", resize);
 
+startTimer();
 render();
