@@ -4,4 +4,4 @@
 
 This artwork has been updated as an interactive NFT for [hicetnunc](https://www.hicetnunc.xyz/).
 
-![Black Ice](./thumbnail.jpg)
+![Black Ice](./artwork/thumbnail.jpg)
