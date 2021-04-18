@@ -86,12 +86,9 @@ const iceMaterial = new THREE.MeshLambertMaterial({
   color: 0xcccccc,
   envMap: cubemap,
   side: THREE.DoubleSide,
-  flatShading: true,
 });
 
 let iceMesh;
-let vertexSets;
-
 function generateMesh(value) {
   if (iceMesh instanceof THREE.Mesh) {
     scene.remove(iceMesh);
@@ -122,7 +119,7 @@ function generateMesh(value) {
   scene.add(iceMesh);
 }
 
-generateMesh(0);
+generateMesh(1);
 
 function resize() {
   const width = window.innerWidth;
